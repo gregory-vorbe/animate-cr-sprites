@@ -8,66 +8,54 @@ from pygame.surface import Surface
 import spritesdict as spd
 
 class chr_bg(pg.sprite.Sprite):
-    def __init__(self, scr:Surface):
+    def __init__(self):
         super().__init__()
         self.image:Surface = pg.image.load(os.path.join("assets", "background2.png")).convert_alpha()
         #bg_width, bg_height = self.image.get_width(), self.image.get_height()
-        self.rect:pg.Rect = scr.blit(self.image, (0, 0))
+        self.rect:pg.Rect = screen.blit(self.image, (0, 0))
 
 class chr_out(pg.sprite.Sprite):
-    def __init__(self, chr:str, dir:str, scr:Surface):
+    def __init__(self, chr:str, dir:str):
         super().__init__()
         self.all_sprites = {}
-
-        #self.sprites_dict = spd.sprites_dict["bats"]
-        #self.sprites_dict = spd.sprites_dict["baby_dragon"]
         self.sprites_dict = spd.sprites_dict[chr]
-        
         self.sprites_ext = self.sprites_dict["base_ext"]
         self.sprites_image = os.path.join(spd.sprites_dict["base_path"], self.sprites_dict["folder"], self.sprites_dict["base_name"])
+        keys:list = ["down", "up", "right"]
 
-        self.sprites = []
-        for img in self.sprites_dict["down"]:
-            self.sprites.append(pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha())
-
-        self.all_sprites["down"] = self.sprites.copy()
-
-        self.sprites = []
-        for img in self.sprites_dict["up"]:
-            self.sprites.append(pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha())
-
-        self.all_sprites["up"] = self.sprites.copy()
-
-        self.sprites = []
-        self.sprites_left = []
-        for img in self.sprites_dict["right"]:
-            tmp_sprite = pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha()
-            self.sprites.append(tmp_sprite)
-            self.sprites_left.append(pg.transform.flip(tmp_sprite, True, False))
-
-        self.all_sprites["right"] = self.sprites.copy()
-        self.all_sprites["left"] = self.sprites_left.copy()
+        for key in keys:
+            self.sprites = []
+            self.sprites_left = []
+            for img in self.sprites_dict[key]:
+                tmp_sprite = pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha()
+                if key == "right":
+                    self.sprites_left.append(pg.transform.flip(tmp_sprite, True, False))
+                self.sprites.append(tmp_sprite)
+            self.all_sprites[key] = self.sprites.copy()
+            if key == "right":
+                self.all_sprites["left"] = self.sprites_left.copy()
 
         self.sprite_direction = dir
-        self.start_animation = False
+        self.start_animation = chr_autorun
         self.current_sprite = 0
         self.image:Surface = self.all_sprites[dir][self.current_sprite]
         self.rect:pg.Rect = self.image.get_rect()
-        self.rect.center = scr.get_rect().center
+        self.rect.center = screen.get_rect().center
 
     def goDirection(self, dir):
         self.sprite_direction = dir
         self.start_animation = True
 
     def stop(self):
-        self.start_animation = False
+        if chr_autorun == False:
+            self.start_animation = False
 
     def update(self,speed):
         if self.start_animation == True:
             self.current_sprite += speed
             if int(self.current_sprite) >= len(self.sprites):
                 self.current_sprite = 0
-                self.start_animation == False
+                self.start_animation == chr_autorun
         self.image = self.all_sprites[self.sprite_direction][int(self.current_sprite)]
 
 screen_width = 640
@@ -76,7 +64,11 @@ fps = 60
 title = "CR SPRITES ANIMATE"
 parser = argparse.ArgumentParser(description='Animate CR characters from sprites')
 parser.add_argument("character", help="Selects the character to animate")
+parser.add_argument("-r", "--run", help="Autorun character", action="store_true")
 chr_arg = parser.parse_args().character
+chr_autorun = parser.parse_args().run
+
+print('autorun: {}'.format(chr_autorun))
 
 pg.init()
 clock = pg.time.Clock()
@@ -86,8 +78,8 @@ pg.display.set_caption(title)
 
 # Creating the sprites and groups
 group_sprites = pg.sprite.Group()
-chr = chr_out(chr_arg, "down", screen)
-bg = chr_bg(screen)
+chr = chr_out(chr_arg, "down")
+bg = chr_bg()
 group_sprites.add(bg, chr)
 
 while True:
