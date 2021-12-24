@@ -15,32 +15,35 @@ class chr_bg(pg.sprite.Sprite):
         self.rect:pg.Rect = screen.blit(self.image, (0, 0))
 
 class chr_out(pg.sprite.Sprite):
-    def __init__(self, chr:str, dir:str):
+    def __init__(self, chr:str, clr:str, dir:str):
         super().__init__()
-        self.all_sprites = {}
-        self.sprites_dict = spd.sprites_dict[chr]
-        self.sprites_ext = self.sprites_dict["base_ext"]
-        self.sprites_image = os.path.join(spd.sprites_dict["base_path"], self.sprites_dict["folder"], self.sprites_dict["base_name"])
-        keys:list = ["down", "up", "right"]
+        if chr in spd.sprites_dict and clr in spd.sprites_dict[chr]:
+            self.all_sprites = {}
+            self.sprites_dict = spd.sprites_dict[chr]
+            self.sprites_ext = self.sprites_dict["base_ext"]
+            self.sprites_image = os.path.join(spd.sprites_dict["base_path"], self.sprites_dict["folder"], self.sprites_dict["base_name"])
+            keys:list = ["down", "up", "right"]
 
-        for key in keys:
-            self.sprites = []
-            self.sprites_left = []
-            for img in self.sprites_dict[key]:
-                tmp_sprite = pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha()
+            for key in keys:
+                self.sprites = []
+                self.sprites_left = []
+                for img in self.sprites_dict[clr][key]:
+                    tmp_sprite = pg.image.load(self.sprites_image+img+self.sprites_ext).convert_alpha()
+                    if key == "right":
+                        self.sprites_left.append(pg.transform.flip(tmp_sprite, True, False))
+                    self.sprites.append(tmp_sprite)
+                self.all_sprites[key] = self.sprites.copy()
                 if key == "right":
-                    self.sprites_left.append(pg.transform.flip(tmp_sprite, True, False))
-                self.sprites.append(tmp_sprite)
-            self.all_sprites[key] = self.sprites.copy()
-            if key == "right":
-                self.all_sprites["left"] = self.sprites_left.copy()
+                    self.all_sprites["left"] = self.sprites_left.copy()
 
-        self.sprite_direction = dir
-        self.start_animation = chr_autorun
-        self.current_sprite = 0
-        self.image:Surface = self.all_sprites[dir][self.current_sprite]
-        self.rect:pg.Rect = self.image.get_rect()
-        self.rect.center = screen.get_rect().center
+            self.sprite_direction = dir
+            self.start_animation = chr_autorun
+            self.current_sprite = 0
+            self.image:Surface = self.all_sprites[dir][self.current_sprite]
+            self.rect:pg.Rect = self.image.get_rect()
+            self.rect.center = screen.get_rect().center
+        else:
+            print("Sprites '" + chr + " " + clr + "' not found")
 
     def goDirection(self, dir):
         self.sprite_direction = dir
@@ -64,11 +67,11 @@ fps = 60
 title = "CR SPRITES ANIMATE"
 parser = argparse.ArgumentParser(description='Animate CR characters from sprites')
 parser.add_argument("character", help="Selects the character to animate")
-parser.add_argument("-r", "--run", help="Autorun character", action="store_true")
+parser.add_argument("-a", "--autorun", help="Autorun character", action="store_true")
+parser.add_argument("-r", "--red", help="Red version character", action="store_true")
 chr_arg = parser.parse_args().character
-chr_autorun = parser.parse_args().run
-
-print('autorun: {}'.format(chr_autorun))
+chr_autorun = parser.parse_args().autorun
+chr_color = "red" if parser.parse_args().red else "blue"
 
 pg.init()
 clock = pg.time.Clock()
@@ -78,7 +81,7 @@ pg.display.set_caption(title)
 
 # Creating the sprites and groups
 group_sprites = pg.sprite.Group()
-chr = chr_out(chr_arg, "down")
+chr = chr_out(chr_arg, chr_color, "down")
 bg = chr_bg()
 group_sprites.add(bg, chr)
 
